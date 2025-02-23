@@ -5,3 +5,4 @@ __pycache__
 trained_models
 *.log
 *.json
+!prop_analysis.json
