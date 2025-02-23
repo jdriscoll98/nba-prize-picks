@@ -32,6 +32,7 @@ df['moving_avg_mins'] = df.groupby('player.id')['min'].transform(
 )
 df.fillna({'moving_avg_mins': 0}, inplace=True)
 
+
 # Compute the historical average rebounds per game (excluding the current game)
 df["historical_avg_reb"] = df.groupby("player.id")["totReb"].transform(
     lambda x: x.expanding().mean().shift()
@@ -46,7 +47,8 @@ df.fillna({"moving_avg_reb": 0}, inplace=True)
 
 features = ["historical_avg_mins", 'moving_avg_mins', "historical_avg_reb", "moving_avg_reb"]
 X = df[features]
-# y = df["totReb"]
+
+
 y = df["totReb"] > REBOUND_TARGET
 
 # Assume X is your feature matrix and y is your binary target variable.

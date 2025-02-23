@@ -7,3 +7,4 @@ trained_models
 *.json
 !prop_analysis.json
 !player_stats_*.json
+!predictions.json

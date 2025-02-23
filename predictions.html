@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prize Picks Predictions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .prediction-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .player-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-type {
+            color: #666;
+            margin: 5px 0;
+        }
+        .probability {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .probability.high {
+            color: #4CAF50;
+        }
+        .probability.low {
+            color: #f44336;
+        }
+        .value {
+            font-size: 1.1em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prize Picks Predictions</h1>
+    <div id="predictions-container">
+        <!-- Predictions will be loaded here -->
+    </div>
+
+    <script>
+        async function loadPredictions() {
+            try {
+                const response = await fetch('predictions.json');
+                const predictions = await response.json();
+                const container = document.getElementById('predictions-container');
+
+                // Sort predictions by probability in descending order
+                predictions.sort((a, b) => b.probability - a.probability);
+
+                predictions.forEach(prediction => {
+                    const probabilityPercentage = (prediction.probability * 100).toFixed(1);
+                    const probabilityClass = prediction.probability > 0.6 ? 'high' : 
+                                          prediction.probability < 0.4 ? 'low' : '';
+                    
+                    const predictionElement = document.createElement('div');
+                    predictionElement.className = 'prediction-card';
+                    predictionElement.innerHTML = `
+                        <div class="player-name">${prediction.player_name}</div>
+                        <div class="stat-type">${prediction.stat_type}</div>
+                        <div class="value">Line: ${prediction.value}</div>
+                        <div class="probability ${probabilityClass}">
+                            Probability: ${probabilityPercentage}%
+                        </div>
+                    `;
+                    container.appendChild(predictionElement);
+                });
+            } catch (error) {
+                console.error('Error loading predictions:', error);
+                document.getElementById('predictions-container').innerHTML = 
+                    '<p>Error loading predictions. Please try again later.</p>';
+            }
+        }
+
+        // Load predictions when the page loads
+        window.addEventListener('load', loadPredictions);
+    </script>
+</body>
+</html> 
