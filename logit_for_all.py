@@ -23,17 +23,17 @@ with open("prize_picks_current_goblin_props.json", "r") as f:
 #        'player.firstname', 'player.lastname', 'team.id', 'team.name',
 #        'team.nickname', 'team.code', 'team.logo', 'game.id']
 STAT_MAP = {
-    # "Rebs+Asts": "totReb + assists",
-    # "Pts+Rebs+Asts": "pts + totReb + assists",
+    "Rebs+Asts": "totReb + assists",
+    "Pts+Rebs+Asts": "pts + totReb + assists",
     "Assists": "assists",
     "Blocked Shots": "blocks",
     "Rebounds": "totReb",
-    # "Points": "fgm + tpm",
+    "Points": "pts + tpm",
     "3-PT Made": "tpm",
-    # "Pts+Asts": "pts + assists",
-    # "Turnovers": "turnovers",
+    "Pts+Asts": "pts + assists",
+    "Turnovers": "turnovers",
     "Steals": "steals",
-    # "Pts+Rebs": "pts + totReb",
+    "Pts+Rebs": "pts + totReb",
 }
 data = []
 for season in range(2019, 2024):
@@ -45,6 +45,7 @@ df = pd.json_normalize(data)
 
 
 df = df[df["min"].notna() & (df["min"] != "--") & (df["min"] != "-")]
+df['pts'] = df['fgm'] * 2 + df['tpm'] * 3
 df["min"] = df["min"].str.split(":").str[0].astype(int)
 df["historical_avg_mins"] = df.groupby("player.id")["min"].transform(
     lambda x: x.expanding().mean().shift()
@@ -70,22 +71,28 @@ for prop in props:
     player_id = players[0]
     # get the value from the prop
     value = prop.get("line_score")
-    print(player_id, player_name, stat_type, value)
 
     # get the stat_type from the STAT_MAP
     stat = STAT_MAP.get(stat_type, None)
     if stat is None:
         print(f"Stat type {stat_type} not found")
         continue
+
+    is_combined_stat = "+" in stat
+    if is_combined_stat:
+        stats = [x.strip() for x in stat.split("+")]
+        df['calc_stat'] = df[stats].sum(axis=1)
+    else:
+        df['calc_stat'] = df[stat]
     
     # Compute the historical average stat per game (excluding the current game)
-    df["historical_avg_stat"] = df.groupby("player.id")[stat].transform(
+    df["historical_avg_stat"] = df.groupby("player.id")['calc_stat'].transform(
         lambda x: x.expanding().mean().shift()
     )
     df.fillna({"historical_avg_stat": 0}, inplace=True)
 
     # Alternatively, compute a moving average over the last 3 games (again shifting so the current game isn't included)
-    df["moving_avg_stat"] = df.groupby("player.id")[stat].transform(
+    df["moving_avg_stat"] = df.groupby("player.id")['calc_stat'].transform(
         lambda x: x.shift().rolling(window=10, min_periods=1).mean()
     )
     df.fillna({"moving_avg_stat": 0}, inplace=True)
@@ -94,7 +101,7 @@ for prop in props:
     X = df[features]
 
 
-    y = df[stat] > value
+    y = df['calc_stat'] > value
 
     # # Assume X is your feature matrix and y is your binary target variable.
     X_train, X_test, y_train, y_test = train_test_split(
@@ -116,8 +123,8 @@ for prop in props:
     player_record = df[df["player.id"] == player_id].iloc[-1]
 
     # Extract the features for that specific record
-    player_features = player_record[features].to_numpy().astype(float)
-    probabilities = model.predict_proba([player_features])[0]
+    player_features_df = pd.DataFrame([player_record[features].astype(float)], columns=features)
+    probabilities = model.predict_proba(player_features_df)[0]
 
     # print("Probability of not exceeding", value, stat_type, ":", probabilities[0])
     # print("Probability of exceeding", value, stat_type, ":", probabilities[1])
