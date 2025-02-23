@@ -42,6 +42,31 @@
             font-size: 1.1em;
             color: #555;
         }
+        
+        /* Update model info styles */
+        .model-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .feature-importance {
+            margin-top: 10px;
+        }
+        .feature-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            color: #666;
+        }
+        .accuracy {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        .confusion-matrix {
+            margin: 5px 0;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -58,7 +83,13 @@
                 const container = document.getElementById('predictions-container');
 
                 // Sort predictions by probability in descending order
-                predictions.sort((a, b) => b.probability - a.probability);
+                // predictions.sort((a, b) => b.probability - a.probability);
+                // predictions.sort((a, b) => b.model_info.accuracy - a.model_info.accuracy);
+                // sort by a combo of probability and accuracy
+                predictions.sort((a, b) => {
+                    const aScore = (b.probability - a.probability) + (b.model_info.accuracy - a.model_info.accuracy);
+                    return aScore;
+                });
 
                 predictions.forEach(prediction => {
                     const probabilityPercentage = (prediction.probability * 100).toFixed(1);
@@ -67,6 +98,17 @@
                     
                     const predictionElement = document.createElement('div');
                     predictionElement.className = 'prediction-card';
+                    
+                    // Format feature importance for display
+                    const featureImportanceHtml = prediction.model_info.feature_importance
+                        .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
+                        .map(feature => `
+                            <div class="feature-row">
+                                <span>${feature.feature.replace(/_/g, ' ')}</span>
+                                <span>${(feature.importance * 100).toFixed(1)}%</span>
+                            </div>
+                        `).join('');
+
                     predictionElement.innerHTML = `
                         <div class="player-name">${prediction.player_name}</div>
                         <div class="stat-type">${prediction.stat_type}</div>
@@ -74,7 +116,20 @@
                         <div class="probability ${probabilityClass}">
                             Probability: ${probabilityPercentage}%
                         </div>
+                        <div class="model-info">
+                            <div class="accuracy">
+                                Model Accuracy: ${(prediction.model_info.accuracy * 100).toFixed(1)}%
+                            </div>
+                            <div class="confusion-matrix">
+                                Correct: ${prediction.model_info.confusion_matrix[0][0] + prediction.model_info.confusion_matrix[1][1]} | 
+                                Incorrect: ${prediction.model_info.confusion_matrix[0][1] + prediction.model_info.confusion_matrix[1][0]}
+                            </div>
+                            <div class="feature-importance">
+                                ${featureImportanceHtml}
+                            </div>
+                        </div>
                     `;
+
                     container.appendChild(predictionElement);
                 });
             } catch (error) {
