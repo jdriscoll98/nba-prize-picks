@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Prop Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .prop-card {
+            transition: transform 0.2s;
+        }
+        .prop-card:hover {
+            transform: translateY(-2px);
+        }
+        .confidence-very-high { background-color: #34d399; }
+        .confidence-high { background-color: #6ee7b7; }
+        .confidence-moderate { background-color: #fcd34d; }
+        .confidence-low { background-color: #fca5a5; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8 text-center">NBA Prop Analysis</h1>
+        
+        <!-- Filters -->
+        <div class="mb-6 flex gap-4 justify-center">
+            <select id="confidenceFilter" class="rounded-lg border p-2">
+                <option value="all">All Confidence Levels</option>
+                <option value="very-high">Very High (>0.8)</option>
+                <option value="high">High (>0.6)</option>
+                <option value="moderate">Moderate (>0.4)</option>
+                <option value="low">Low (<0.4)</option>
+            </select>
+        </div>
+
+        <!-- Props Grid -->
+        <div id="propsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Props will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Prop Card Template -->
+    <template id="propCardTemplate">
+        <div class="prop-card bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-xl font-bold player-name"></h2>
+                    <div class="text-gray-600">
+                        <span class="team"></span>
+                        <span class="position text-sm ml-2"></span>
+                    </div>
+                    <p class="text-gray-600 prop-details mt-1"></p>
+                    <p class="text-sm text-gray-500 game-time mt-1"></p>
+                </div>
+                <div class="text-right">
+                    <div class="confidence-badge px-3 py-1 rounded-full text-white text-sm mb-2"></div>
+                    <div class="text-2xl font-bold score"></div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="season-stats">
+                    <h3 class="font-semibold mb-2">Season Stats</h3>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>Hit Rate: <span class="hit-rate font-medium"></span></div>
+                        <div>Avg Value: <span class="avg-value font-medium"></span></div>
+                        <div>Games: <span class="games-played font-medium"></span></div>
+                        <div>Avg Diff: <span class="avg-diff font-medium"></span></div>
+                    </div>
+                </div>
+
+                <div class="recent-form">
+                    <h3 class="font-semibold mb-2">Recent Form</h3>
+                    <div class="text-sm">
+                        <div>Last 10 Games: <span class="recent-hit-rate font-medium"></span></div>
+                        <div>Recent Avg: <span class="recent-avg font-medium"></span></div>
+                        <div class="last-5 mt-1"></div>
+                    </div>
+                </div>
+
+                <div class="playing-time">
+                    <h3 class="font-semibold mb-2">Playing Time</h3>
+                    <div class="text-sm">
+                        <div>Average: <span class="avg-minutes font-medium"></span> minutes</div>
+                        <div>Consistency: ±<span class="minutes-stdev font-medium"></span> minutes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+        }
+
+        function getConfidenceLevel(score) {
+            if (score > 0.8) return "very-high";
+            if (score > 0.6) return "high";
+            if (score > 0.4) return "moderate";
+            return "low";
+        }
+
+        async function loadProps() {
+            const response = await fetch('best_props.json');
+            const props = await response.json();
+            props.sort((a, b) => b.score - a.score);
+            function renderProps(props) {
+                const grid = document.getElementById('propsGrid');
+                grid.innerHTML = '';
+                const template = document.getElementById('propCardTemplate');
+
+                props.forEach(prop => {
+                    const card = template.content.cloneNode(true);
+                    const analysis = prop.analysis;
+                    
+                    // Basic info
+                    card.querySelector('.player-name').textContent = prop.prop.player.name;
+                    card.querySelector('.team').textContent = prop.prop.player.team_name;
+                    card.querySelector('.position').textContent = prop.prop.player.position;
+                    card.querySelector('.prop-details').textContent = 
+                        `${prop.prop.stat_type} ${prop.prop.line_score}`;
+                    card.querySelector('.game-time').textContent = 
+                        formatDate(prop.prop.start_time);
+                    
+                    // Confidence and score
+                    const confidenceLevel = getConfidenceLevel(prop.score);
+                    card.querySelector('.confidence-badge').textContent = confidenceLevel.replace('-', ' ').toUpperCase();
+                    card.querySelector('.confidence-badge').classList.add(`confidence-${confidenceLevel}`);
+                    card.querySelector('.score').textContent = prop.score.toFixed(2);
+
+                    // Season stats
+                    const hitRate = (analysis.times_above_line / analysis.games_played * 100).toFixed(1);
+                    card.querySelector('.hit-rate').textContent = 
+                        `${hitRate}% (${analysis.times_above_line}/${analysis.games_played})`;
+                    card.querySelector('.avg-value').textContent = 
+                        analysis.average_value.toFixed(1);
+                    card.querySelector('.games-played').textContent = 
+                        analysis.games_played;
+                    card.querySelector('.avg-diff').textContent = 
+                        `+${analysis.average_difference.toFixed(1)}`;
+
+                    // Add recent form
+                    const recentHitRate = (analysis.recent_hit_rate * 100).toFixed(1);
+                    card.querySelector('.recent-hit-rate').textContent = 
+                        `${recentHitRate}% over line`;
+                    card.querySelector('.recent-avg').textContent = 
+                        analysis.recent_average.toFixed(1);
+                    
+                    // Show last 5 games
+                    const last5 = analysis.recent_values;
+                    const last5Container = card.querySelector('.last-5');
+                    last5Container.innerHTML = `Last 5: ${last5.map(v => v.toFixed(1)).join(' → ')}`;
+
+                    // Playing time
+                    card.querySelector('.avg-minutes').textContent = 
+                        analysis.average_minutes.toFixed(1);
+                    card.querySelector('.minutes-stdev').textContent = 
+                        analysis.minutes_stdev.toFixed(1);
+
+                    grid.appendChild(card);
+                });
+            }
+
+            // Initial render
+            renderProps(props);
+
+            // Setup filter
+            const confidenceFilter = document.getElementById('confidenceFilter');
+            
+            function filterProps() {
+                let filtered = props;
+                
+                if (confidenceFilter.value !== 'all') {
+                    const thresholds = {
+                        'very-high': 0.8,
+                        'high': 0.6,
+                        'moderate': 0.4,
+                        'low': 0
+                    };
+                    const maxThresholds = {
+                        'very-high': 1,
+                        'high': 0.8,
+                        'moderate': 0.6,
+                        'low': 0.4
+                    };
+                    
+                    filtered = filtered.filter(p => 
+                        p.score > thresholds[confidenceFilter.value] && 
+                        p.score <= maxThresholds[confidenceFilter.value]
+                    );
+                }
+
+                renderProps(filtered);
+            }
+
+            confidenceFilter.addEventListener('change', filterProps);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProps);
+    </script>
+</body>
+</html> 

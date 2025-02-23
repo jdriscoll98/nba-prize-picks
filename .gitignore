@@ -1,0 +1,7 @@
+.env
+.venv
+.cache
+__pycache__
+trained_models
+*.log
+*.json
