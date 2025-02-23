@@ -6,3 +6,4 @@ trained_models
 *.log
 *.json
 !prop_analysis.json
+!player_stats_*.json
