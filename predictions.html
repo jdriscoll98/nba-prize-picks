@@ -100,14 +100,14 @@
                     predictionElement.className = 'prediction-card';
                     
                     // Format feature importance for display
-                    const featureImportanceHtml = prediction.model_info.feature_importance
-                        .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
-                        .map(feature => `
-                            <div class="feature-row">
-                                <span>${feature.feature.replace(/_/g, ' ')}</span>
-                                <span>${(feature.importance * 100).toFixed(1)}%</span>
-                            </div>
-                        `).join('');
+                    // const featureImportanceHtml = prediction.model_info.feature_importance
+                    //     .sort((a, b) => Math.abs(b.importance) - Math.abs(a.importance))
+                    //     .map(feature => `
+                    //         <div class="feature-row">
+                    //             <span>${feature.feature.replace(/_/g, ' ')}</span>
+                    //             <span>${(feature.importance * 100).toFixed(1)}%</span>
+                    //         </div>
+                    //     `).join('');
 
                     predictionElement.innerHTML = `
                         <div class="player-name">${prediction.player_name}</div>
@@ -120,14 +120,8 @@
                             <div class="accuracy">
                                 Model Accuracy: ${(prediction.model_info.accuracy * 100).toFixed(1)}%
                             </div>
-                            <div class="confusion-matrix">
-                                Correct: ${prediction.model_info.confusion_matrix[0][0] + prediction.model_info.confusion_matrix[1][1]} | 
-                                Incorrect: ${prediction.model_info.confusion_matrix[0][1] + prediction.model_info.confusion_matrix[1][0]}
-                            </div>
-                            <div class="feature-importance">
-                                ${featureImportanceHtml}
-                            </div>
                         </div>
+                        
                     `;
 
                     container.appendChild(predictionElement);
