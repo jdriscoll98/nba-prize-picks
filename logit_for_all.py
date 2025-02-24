@@ -36,7 +36,7 @@ STAT_MAP = {
     "Pts+Rebs": "pts + totReb",
 }
 data = []
-for season in range(2019, 2024):
+for season in range(2022, 2025):
     filename = f"player_stats_{season}.json"
     with open(filename, "r") as f:
         season_data = json.load(f)

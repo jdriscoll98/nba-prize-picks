@@ -79,17 +79,18 @@
         async function loadPredictions() {
             try {
                 const response = await fetch('predictions.json');
-                const predictions = await response.json();
+                let predictions = await response.json();
                 const container = document.getElementById('predictions-container');
 
                 // Sort predictions by probability in descending order
-                // predictions.sort((a, b) => b.probability - a.probability);
+                predictions = predictions.filter(p => p.model_info.accuracy > 0.89)
+                predictions.sort((a, b) => b.probability - a.probability);
                 // predictions.sort((a, b) => b.model_info.accuracy - a.model_info.accuracy);
                 // sort by a combo of probability and accuracy
-                predictions.sort((a, b) => {
-                    const aScore = (b.probability - a.probability) + (b.model_info.accuracy - a.model_info.accuracy);
-                    return aScore;
-                });
+                // predictions.sort((a, b) => {
+                //     const aScore = (b.probability - a.probability) + (b.model_info.accuracy - a.model_info.accuracy);
+                //     return aScore;
+                // });
 
                 predictions.forEach(prediction => {
                     const probabilityPercentage = (prediction.probability * 100).toFixed(1);

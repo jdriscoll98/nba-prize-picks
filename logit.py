@@ -4,10 +4,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, mean_squared_error, r2_score
 
-REBOUND_TARGET = 2.5
-PLAYER_ID = 248
+REBOUND_TARGET = 5.5
+PLAYER_ID = 972
 data = []
-for season in range(2019, 2024):
+for season in range(2022, 2025):
     filename = f"player_stats_{season}.json"
     with open(filename, "r") as f:
         season_data = json.load(f)

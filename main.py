@@ -62,6 +62,7 @@ def main():
     if args.refresh_stats:
         nba_api = NBAApiWrapper()
         nba_api.save_all_player_stats()
+        nba_api.get_games(season=2024)
 
     prize_picks = PrizePicksAPI()
     props = prize_picks.get_current_goblin_props()

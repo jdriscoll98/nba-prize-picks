@@ -134,6 +134,19 @@ class NBAApiWrapper:
         - h2h (str): Two team IDs (e.g., '1-4')
         """
         return self._make_request("games", params)
+    
+    def save_all_games(self, season: Optional[int] = None, filename: str = "games.json"):
+        """
+        Fetch and save all NBA games to a file
+        
+        Args:
+            season (int, optional): Season year YYYY
+            filename (str): Name of file to save games to
+        """
+        games = self.get_games(season=season)
+        with open(filename, 'w') as f:
+            json.dump(games, f) 
+    
 
     def get_teams(self, **params) -> Dict:
         """
@@ -224,33 +237,9 @@ class NBAApiWrapper:
         Returns:
             Dict: Response containing all NBA teams
         """
-        return self.get_teams(league="standard")
-
-    def get_all_teams_cached(self) -> List[Dict]:
-        """
-        Get all teams, either from cache file or API
-        
-        Returns:
-            List[Dict]: List of team data
-        """
-        teams_file = Path("teams.json")
-        
-        # Try to load from cache first
-        if teams_file.exists():
-            try:
-                with open(teams_file, 'r') as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                pass  # If file is invalid, fetch from API
-                
-        # Fetch from API and cache results
-        teams_response = self.get_all_teams()
-        if teams_response.get('response'):
-            with open(teams_file, 'w') as f:
-                json.dump(teams_response['response'], f)
-            return teams_response['response']
-        
-        return []
+        east = [x for x in self.get_teams(league="standard", conference="East")['response'] if x['nbaFranchise'] and not x['allStar']]
+        west = [x for x in self.get_teams(league="standard", conference="West")['response'] if x['nbaFranchise'] and not x['allStar']]
+        return east + west
 
     def get_all_players(self, season: Optional[int] = None) -> List[Dict]:
         """
@@ -262,7 +251,7 @@ class NBAApiWrapper:
         Returns:
             List[Dict]: List of all players
         """
-        teams = self.get_all_teams_cached()
+        teams = self.get_all_teams()
         all_players = []
         
         for team in teams:
@@ -293,17 +282,12 @@ class NBAApiWrapper:
         """
         # First check if players.json exists and load from it
         players_file = Path("players.json")
-        if players_file.exists():
-            with open(players_file, 'r') as f:
-                players = json.load(f)
-        else:
-            # If not, get all players and save to players.json
-            players = self.get_all_players(season=season)
-            with open(players_file, 'w') as f:
-                json.dump(players, f)
+        # If not, get all players and save to players.json
+        nba_players = self.get_all_players(season=season)
+        with open(players_file, 'w') as f:
+            json.dump(nba_players, f)
         
         # Filter for NBA players (those with nba.start > 0)
-        nba_players = [p for p in players if p.get('nba', {}).get('start', 0) > 0]
         
         all_stats = []
         total_players = len(nba_players)
